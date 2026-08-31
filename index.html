@@ -89,6 +89,19 @@
       });
     }
 
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      playSfx(100, 0.5);
+      document.getElementById('final-score').textContent = score;
+      document.getElementById('modal').style.display = 'flex';
+      try {
+        if (window.ArcadeLeaderboard) {
+          window.ArcadeLeaderboard.submitScore('sky-ace-1944', score);
+        }
+      } catch(e){}
+    }
+
     function restartGame() {
       score = 0; bombs = 2; lives = 3; isGameOver = false; invincibleTimer = 0;
       player.x = 300; player.y = 680;
@@ -162,9 +175,7 @@
           playSfx(120, 0.4);
           for (let p=0; p<10; p++) particles.push({ x: player.x, y: player.y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, color:'#00f5ff', life:1 });
           if (lives <= 0) {
-            isGameOver = true;
-            document.getElementById('final-score').textContent = score;
-            document.getElementById('modal').style.display = 'flex';
+            triggerGameOver();
             return;
           }
           invincibleTimer = 90;
@@ -184,19 +195,7 @@
           for (let p=0; p<10; p++) particles.push({ x: player.x, y: player.y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, color:'#00f5ff', life:1 });
           eBullets.splice(i, 1);
           if (lives <= 0) {
-            isGameOver = true;
-            document.getElementById('final-score').textContent = score;
-
-            if (window.ArcadeLeaderboard) {
-              window.ArcadeLeaderboard.show({
-                gameId: 'sky-ace-1944',
-                score: score,
-                scoreUnit: 'PTS',
-                onRestart: restartGame
-              });
-            } else {
-              document.getElementById('modal').style.display = 'flex';
-            }
+            triggerGameOver();
             return;
           }
           invincibleTimer = 90;
