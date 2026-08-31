@@ -7,7 +7,8 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; touch-action:none; user-select:none; }
     body { background:#0a101f; color:#fff; font-family:'Segoe UI',sans-serif; overflow:hidden; display:flex; justify-content:center; align-items:center; height:100vh; }
-    #canvas-container { position:relative; width:100vw; height:100vh; max-width:600px; max-height:800px; aspect-ratio:3/4; }
+    #canvas-container { position:relative; width:100vw; height:100vh; max-width:600px; }
+    @media (max-width: 600px) { .hud { font-size:14px; } .arcade-nav { font-size:11px; padding:6px 10px; } .bomb-btn { width:60px; height:60px; } }
     canvas { width:100%; height:100%; display:block; background:#0a101f; }
     .arcade-nav { position:absolute; top:16px; right:16px; z-index:100; background:rgba(0,0,0,0.7); border:2px solid #ff9f43; color:#ff9f43; padding:8px 16px; border-radius:8px; font-weight:bold; text-decoration:none; font-size:13px; box-shadow:0 0 15px rgba(255,159,67,0.4); }
     .hud { position:absolute; top:16px; left:16px; font-family:monospace; font-size:18px; font-weight:bold; color:#00f5ff; text-shadow:0 0 10px #00f5ff; pointer-events:none; }
@@ -21,7 +22,7 @@
 <body>
   <div id="canvas-container">
     <a href="https://marcuscaiado.github.io/marcus-arcade/" class="arcade-nav">🕹️ Arcade Hub</a>
-    <div class="hud">SCORE: <span id="score-val">0</span> | BOMBS: <span id="bomb-val">2</span></div>
+    <div class="hud">SCORE: <span id="score-val">0</span> | BOMBS: <span id="bomb-val">2</span> | LIVES: <span id="lives-val">3</span></div>
     <div class="bomb-btn" onclick="useBomb()">💣</div>
     <canvas id="gameCanvas" width="600" height="800"></canvas>
     <div id="modal">
@@ -48,7 +49,7 @@
       } catch(e){}
     }
 
-    let score = 0, bombs = 2, isGameOver = false, waveTimer = 0;
+    let score = 0, bombs = 2, lives = 3, isGameOver = false, waveTimer = 0, invincibleTimer = 0;
     let player = { x: 300, y: 680, w: 40, h: 40, shootTimer: 0 };
     let bullets = [], enemies = [], eBullets = [], particles = [];
 
@@ -88,17 +89,21 @@
     }
 
     function restartGame() {
-      score = 0; bombs = 2; isGameOver = false;
+      score = 0; bombs = 2; lives = 3; isGameOver = false; invincibleTimer = 0;
       player.x = 300; player.y = 680;
       bullets = []; enemies = []; eBullets = []; particles = [];
       document.getElementById('score-val').textContent = '0';
       document.getElementById('bomb-val').textContent = '2';
+      document.getElementById('lives-val').textContent = '3';
       document.getElementById('modal').style.display = 'none';
       requestAnimationFrame(loop);
     }
 
     function loop() {
       if (isGameOver) return;
+
+      // Invincibility timer
+      if (invincibleTimer > 0) invincibleTimer--;
 
       // Player Auto Fire
       player.shootTimer++;
@@ -150,12 +155,18 @@
         }
 
         // Enemy Crash with Player
-        if (Math.hypot(player.x - e.x, player.y - e.y) < 28) {
-          isGameOver = true;
+        if (invincibleTimer <= 0 && Math.hypot(player.x - e.x, player.y - e.y) < 28) {
+          lives--;
+          document.getElementById('lives-val').textContent = lives;
           playSfx(120, 0.4);
-          document.getElementById('final-score').textContent = score;
-          document.getElementById('modal').style.display = 'flex';
-          return;
+          for (let p=0; p<10; p++) particles.push({ x: player.x, y: player.y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, color:'#00f5ff', life:1 });
+          if (lives <= 0) {
+            isGameOver = true;
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('modal').style.display = 'flex';
+            return;
+          }
+          invincibleTimer = 90;
         }
 
         if (e.y > 840) enemies.splice(i, 1);
@@ -165,12 +176,20 @@
       for (let i = eBullets.length - 1; i >= 0; i--) {
         const eb = eBullets[i];
         eb.y += eb.vy;
-        if (Math.hypot(player.x - eb.x, player.y - eb.y) < 18) {
-          isGameOver = true;
+        if (invincibleTimer <= 0 && Math.hypot(player.x - eb.x, player.y - eb.y) < 18) {
+          lives--;
+          document.getElementById('lives-val').textContent = lives;
           playSfx(120, 0.4);
-          document.getElementById('final-score').textContent = score;
-          document.getElementById('modal').style.display = 'flex';
-          return;
+          for (let p=0; p<10; p++) particles.push({ x: player.x, y: player.y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, color:'#00f5ff', life:1 });
+          eBullets.splice(i, 1);
+          if (lives <= 0) {
+            isGameOver = true;
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('modal').style.display = 'flex';
+            return;
+          }
+          invincibleTimer = 90;
+          continue;
         }
         if (eb.y > 840) eBullets.splice(i, 1);
       }
@@ -187,7 +206,8 @@
       }
 
       // Draw Player Fighter
-      ctx.fillStyle = '#00f5ff';
+      if (invincibleTimer % 6 < 3 || invincibleTimer <= 0) {
+        ctx.fillStyle = '#00f5ff';
       ctx.beginPath();
       ctx.moveTo(player.x, player.y - 24);
       ctx.lineTo(player.x - 20, player.y + 16);
@@ -197,7 +217,7 @@
       ctx.fill();
       // Cockpit
       ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(player.x, player.y - 4, 5, 0, Math.PI*2); ctx.fill();
-
+      }
       // Draw Player Bullets
       ctx.fillStyle = '#fffb00';
       ctx.shadowColor = '#fffb00'; ctx.shadowBlur = 10;
