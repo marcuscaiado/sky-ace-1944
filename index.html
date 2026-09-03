@@ -767,20 +767,25 @@
     }
 
     function spawnEnemy() {
-      const ddaMult = window.ArcadeDifficulty ? ArcadeDifficulty.getMultiplier(score, 4000, 2.0) : 1.0;
-      const isBoss = score > 600 && Math.random() < Math.min(0.28, 0.15 * ddaMult);
-      const colorHex = isBoss ? '#ff4757' : (Math.random() > 0.5 ? '#ffa502' : '#2ed573');
+      const session = window.ArcadeDifficulty ? ArcadeDifficulty.getSessionTier(null, score, 2000) : { tier: 1, multiplier: 1.0 };
+      const tier = session.tier;
+      const ddaMult = session.multiplier;
+      const isBoss = tier >= 2 && Math.random() < (tier === 3 ? 0.25 : 0.12);
+      const colorHex = isBoss ? '#ff4757' : (tier === 1 ? '#2ed573' : (Math.random() > 0.5 ? '#ffa502' : '#ff4757'));
       const mesh = createEnemyMesh(isBoss, colorHex);
       scene.add(mesh);
 
+      // Tier 1: Predictable straight descent; Tier 2: Banking dive-bombers; Tier 3: Fast interceptors
+      const vx = tier === 1 ? (Math.random() - 0.5) * 0.4 : (Math.random() - 0.5) * (tier === 3 ? 2.5 : 1.8);
+      const vy = (tier === 1 ? 1.8 + Math.random() * 0.8 : (isBoss ? 1.4 : 2.4 + Math.random() * 2.0)) * Math.min(1.5, 0.85 + 0.15 * ddaMult);
+
       enemies.push({
-        x: 40 + Math.random() * 520,
+        x: 60 + Math.random() * 480,
         y: -50,
-        vx: (Math.random() - 0.5) * 1.8 * Math.min(1.4, ddaMult),
-        vy: (isBoss ? 1.2 : 2.2 + Math.random() * 1.8) * Math.min(1.5, 0.85 + 0.15 * ddaMult),
-        hp: isBoss ? Math.round(8 * (0.8 + 0.2 * ddaMult)) : (ddaMult > 1.6 ? 3 : 2),
+        vx, vy,
+        hp: isBoss ? Math.round(8 * (0.8 + 0.2 * ddaMult)) : (tier === 3 ? 3 : (tier === 2 ? 2 : 1)),
         isBoss: isBoss,
-        shootTimer: Math.max(20, (35 + Math.random() * 50) / ddaMult),
+        shootTimer: Math.max(tier === 1 ? 45 : 20, (35 + Math.random() * 50) / ddaMult),
         color: colorHex,
         mesh: mesh
       });
@@ -1064,7 +1069,12 @@
 
         if (Math.hypot(player.x - pu.x, player.y - pu.y) < 32) {
           if (window.DopamineSynth) window.DopamineSynth.playScore(0.25);
-          if (window.DopamineJuice) window.DopamineJuice.spawnScore(pu.x, pu.y, pu.type.toUpperCase() + ' ⚡', 3);
+          if (window.DopamineJuice) {
+            const rect = canvas.getBoundingClientRect();
+            const sx = rect.left + (pu.x / 600) * rect.width;
+            const sy = rect.top + (pu.y / 800) * rect.height;
+            window.DopamineJuice.spawnScore(sx, sy, pu.type.toUpperCase() + ' ⚡', 3);
+          }
           flashScreen('rgba(0, 245, 255, 0.35)', 120);
 
           if (pu.type === 'upgrade') {
