@@ -4,16 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Sky Ace 1944 🛩️🔥</title>
+  <script src="arcade-sound-engine.js"></script>
   <script src="arcade-leaderboard.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; touch-action:none; user-select:none; }
     body { background:#0a101f; color:#fff; font-family:'Segoe UI',sans-serif; overflow:hidden; display:flex; justify-content:center; align-items:center; height:100vh; }
     #canvas-container { position:relative; width:100vw; height:100vh; max-width:600px; }
     @media (max-width: 600px) { .hud { font-size:14px; } .arcade-nav { font-size:11px; padding:6px 10px; } .bomb-btn { width:60px; height:60px; } }
-    canvas { width:100%; height:100%; display:block; background:#0a101f; }
+    #canvas-container canvas#gameCanvas { width:100%; height:100%; display:block; background:#0a101f; }
     .arcade-nav { position:absolute; top:16px; right:16px; z-index:100; background:rgba(0,0,0,0.7); border:2px solid #ff9f43; color:#ff9f43; padding:8px 16px; border-radius:8px; font-weight:bold; text-decoration:none; font-size:13px; box-shadow:0 0 15px rgba(255,159,67,0.4); }
-    .hud { position:absolute; top:16px; left:16px; font-family:monospace; font-size:18px; font-weight:bold; color:#00f5ff; text-shadow:0 0 10px #00f5ff; pointer-events:none; }
-    .bomb-btn { position:absolute; bottom:24px; right:24px; width:70px; height:70px; border-radius:50%; background:radial-gradient(circle,#ff4757,#2f3542); border:3px solid #ff6b81; color:#fff; font-size:24px; font-weight:bold; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(255,71,87,0.6); pointer-events:auto; cursor:pointer; }
+    .hud { position:absolute; top:16px; left:16px; z-index:20; font-family:monospace; font-size:18px; font-weight:bold; color:#00f5ff; text-shadow:0 0 10px #00f5ff; pointer-events:none; }
+    .bomb-btn { position:absolute; bottom:24px; right:24px; z-index:20; width:70px; height:70px; border-radius:50%; background:radial-gradient(circle,#ff4757,#2f3542); border:3px solid #ff6b81; color:#fff; font-size:24px; font-weight:bold; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(255,71,87,0.6); pointer-events:auto; cursor:pointer; }
     .bomb-btn:active { transform:scale(0.92); }
     #modal { position:absolute; inset:0; background:rgba(0,0,0,0.85); display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; z-index:200; }
     #modal h1 { color:#ff4757; font-size:42px; text-shadow:0 0 20px #ff4757; }
@@ -42,6 +43,21 @@
     let audioCtx = null;
     function getAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
     function playSfx(freq, dur) {
+      if (window.arcadeAudio) {
+        if (freq >= 750) {
+          window.arcadeAudio.playLaser(1.1, 0.05);
+          return;
+        } else if (freq >= 500) {
+          window.arcadeAudio.playPop(1.4, dur || 0.1);
+          return;
+        } else if (freq <= 250) {
+          window.arcadeAudio.playSoftThud(1.3);
+          return;
+        } else {
+          window.arcadeAudio.playPop(freq / 500, dur || 0.08);
+          return;
+        }
+      }
       try {
         const c = getAudio(); const osc = c.createOscillator(); const g = c.createGain();
         osc.frequency.value = freq; g.gain.setValueAtTime(0.1, c.currentTime);
