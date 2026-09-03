@@ -299,6 +299,13 @@
     const WORLD_SCALE = 0.175;
     function toWorldX(x2d) { return (x2d - 300) * WORLD_SCALE; }
     function toWorldZ(y2d) { return (y2d - 400) * WORLD_SCALE; }
+    function toClient(x2d, y2d) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: rect.left + (x2d / 600) * rect.width,
+        y: rect.top + (y2d / 800) * rect.height
+      };
+    }
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x1e2d5a, 1.8);
@@ -779,6 +786,10 @@
         score += 75;
         spawn3DExplosion(e.x, e.y, e.color, e.isBoss);
         if (e.mesh) scene.remove(e.mesh);
+        if (window.DopamineJuice) {
+          const pt = toClient(e.x, e.y);
+          window.DopamineJuice.spawnScore(pt.x, pt.y, '+75 💣', 2);
+        }
       }
       for (const eb of eBullets) {
         if (eb.mesh) scene.remove(eb.mesh);
@@ -1018,7 +1029,8 @@
                 playSfx(250, 0.15);
               }
               if (window.DopamineJuice) {
-                window.DopamineJuice.spawnScore(e.x, e.y, `+${pts}${e.isBoss ? ' 💥 BOSS!' : ''}`, e.isBoss ? 4 : 1);
+                const pt = toClient(e.x, e.y);
+                window.DopamineJuice.spawnScore(pt.x, pt.y, `+${pts}${e.isBoss ? ' 💥 BOSS!' : ''}`, e.isBoss ? 4 : 1);
                 if (e.isBoss) window.DopamineJuice.explodeConfetti(window.innerWidth / 2, window.innerHeight * 0.35, 55);
               }
 
