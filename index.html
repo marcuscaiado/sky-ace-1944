@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Sky Ace 1944 🛩️🔥</title>
   <script src="arcade-sound-engine.js"></script>
+  <script src="arcade-difficulty.js"></script>
   <script src="arcade-leaderboard.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; touch-action:none; user-select:none; }
@@ -96,15 +97,16 @@
     }
 
     function spawnEnemy() {
-      const isBoss = score > 600 && Math.random() < 0.15;
+      const ddaMult = window.ArcadeDifficulty ? ArcadeDifficulty.getMultiplier(score, 4000, 2.0) : 1.0;
+      const isBoss = score > 600 && Math.random() < Math.min(0.28, 0.15 * ddaMult);
       enemies.push({
         x: 40 + Math.random() * 520,
         y: -50,
-        vx: (Math.random() - 0.5) * 1.8,
-        vy: isBoss ? 1.2 : 2.2 + Math.random() * 1.8,
-        hp: isBoss ? 8 : 2,
+        vx: (Math.random() - 0.5) * 1.8 * Math.min(1.4, ddaMult),
+        vy: (isBoss ? 1.2 : 2.2 + Math.random() * 1.8) * Math.min(1.5, 0.85 + 0.15 * ddaMult),
+        hp: isBoss ? Math.round(8 * (0.8 + 0.2 * ddaMult)) : (ddaMult > 1.6 ? 3 : 2),
         isBoss: isBoss,
-        shootTimer: 35 + Math.random() * 50,
+        shootTimer: Math.max(20, (35 + Math.random() * 50) / ddaMult),
         color: isBoss ? '#ff4757' : (Math.random() > 0.5 ? '#ffa502' : '#2ed573')
       });
     }
@@ -124,6 +126,7 @@
     }
 
     function restartGame() {
+      if (window.ArcadeDifficulty) ArcadeDifficulty.reset();
       score = 0; bombs = 2; lives = 3; isGameOver = false; invincibleTimer = 0;
       weaponLevel = 1; hasShield = false;
       player.x = 300; player.y = 680;
@@ -171,7 +174,8 @@
 
       // Spawn Enemies
       waveTimer++;
-      if (waveTimer > 42) { spawnEnemy(); waveTimer = 0; }
+      const waveInterval = window.ArcadeDifficulty ? ArcadeDifficulty.scaleInterval(42, score, 4000, 20, 2.0) : 42;
+      if (waveTimer > waveInterval) { spawnEnemy(); waveTimer = 0; }
 
       // Update Enemies
       for (let i = enemies.length - 1; i >= 0; i--) {
