@@ -752,11 +752,6 @@
       setPos(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: false });
 
-    let cameraTrauma = 0;
-    function addCameraTrauma(trauma) {
-      cameraTrauma = Math.min(1.5, cameraTrauma + trauma);
-    }
-
     function flashScreen(color, duration = 200) {
       const overlay = document.createElement('div');
       overlay.style.position = 'fixed';
